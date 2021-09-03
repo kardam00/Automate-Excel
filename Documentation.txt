@@ -1,0 +1,672 @@
+Python libraries used in Automating Microsoft Excel and Word.
+
+1) Openpyxl
+    ->Read and write all current and legacy Excel formats(xlsx, xls)
+    ->It allows you to populate rows and columns, execute formulae,
+    create 2D and 3D charts, label axes and titles and others.
+    ->It enables you to iterate over an endless numbers of rows and columns.
+
+2) Python-docx
+    ->It allows you to automate document generation by inserting text,
+    filling in tables and rendering images into your report automatically
+    without any overhead whatsoever.
+
+Basics:
+    Workbook:
+        Create a workbook
+            ->wb = Workbook()
+
+        A workbook is always created with at least one worksheet
+            -> ws = wb.active
+
+    Sheet:
+        Create a sheet:
+            -> ws1 = wb.create_sheet('Mysheet')  # insert ata the end(default)
+            -> ws2 = wb.create_sheet('Mysheet', 0) # insert at first position
+            -> ws3 = eb.create_sheet('Mysheet', -1)  # insert at the penultimate position
+
+        Change name of a sheet
+            -> ws1.title = 'New title'
+
+        Background color of the tab holding this title is white by default.
+            -> ws1.sheet_properties.tabColor = '1072BA'
+
+        Print names of all sheets
+            -> print(wb.sheetnames)
+            -> loop through worksheets
+                for sheet in wb:
+                    print(sheet.title)
+
+        Create copy of worksheets within single workbook
+            -> source = wb.active
+            -> target = wb.copy_worksheet(source)
+
+    Data:
+        Access cell
+            -> c = ws['A4']
+        Assign value
+            -> ws['A4'] = 4
+        Access cells using row and column
+            -> d = ws.cell(row=4, column=2, value=10)
+        Access multiple cells
+            Slicing
+                -> cell_range = ws['A1':'C2]
+            Ranges of rows or columns
+                -> colC = ws['C']
+                -> col_range = ws['C:D']
+                -> row10 = ws[10]
+                -> row_range = ws[5:10]
+            iteration
+                -> for row in ws.iter_rows(min_row=1, max_col=3, max_row=2):
+                        for cell in row:
+                            print(cell)
+
+                -> for col in ws.iter_cols(min_row=1, max_col=3, max_row=2):
+                        for cell in col:
+                            print(cell)
+            All rows or columns of the file
+                -> tuple(ws.rows)
+                -> tuple(ws.columns)
+    Values:
+        If you want the values from a worksheet, iterate over all the rows and return just the cell values
+            -> for row in ws.values:
+                    for value in row:
+                        print(value)
+
+        iter_rows or iter_cols
+            -> for row in ws.iter_rows(min_row=1, max_col=3, max_row=2,
+                                        values_only=True):
+                    print(row)
+
+    Save to a file:
+        This will overwrite existing files without warning
+        -> wb.save('balances.xlsx')
+
+    Loading from a file:
+        -> wb2 = load_workbook('test.xlsx')
+        -> print(wb2.sheetnames)
+
+Simple Usage:
+    Using number formats:
+        -> import datetime  # for date
+        -> wb = Workbook()
+        -> ws = wb.active
+        -> ws['A1'] = datetime.datetime(2010, 7, 21)
+        -> ws['A1'].number_format
+
+    Using formulae:
+        -> ws['A1'] = "=SUM(1, 1)"
+        -> wb.save('formula.xlsx')
+
+        check the name of a formula
+            -> from openpyxl.utils import FORMULAE
+            -> 'HEX2DEC' in FORMULAE
+
+    Merge/Unmerge cells:
+        To carry the border-information of the merged cell,
+        the boundary cells of the merged cell are created as
+        MergeCells which always have the value None.
+            -> ws.merge_cells('A2:D2')
+            -> ws.unmerge_cells('A2:D2')
+            OR
+            -> ws.merge_cells(start_row=2, start_column=1, end_row=4, end_column=4)
+            -> ws.unmerge_cells(start_row=2, start_column=1, end_row=4, end_column=4)
+
+    Insert an Image:
+        -> img = Image('logo.png')  # Create image
+        -> ws.add_image(img, 'A1')  # add to worksheet and anchor next to cells
+        -> wb.save('logo.xlsx')
+
+    Fold(outline):
+        -> ws.column_dimension.group('A','D',hidden=True)
+        -> ws.row_dimension.group(1, 10, hidden=True)
+        -> wb.save('group.xlsx')
+
+Rows and Columns:
+    Inserting rows and columns:
+        you can insert rows or columns i\using worksheet methods
+        -> ws.insert_rows()
+        -> ws.insert_cols()
+
+    Delete row and columns::
+        -> ws.delete_rows()
+        -> ws.delete_cols(6, 3) # delete F, G, H columns
+
+    Moving ranges of cells:
+        This will move cells in the range D4:F10 up one row and
+        right two columns. The cells will overwrite any existing cells.
+        -> ws.move_range('D4:F10', rows=-1, cols=2)
+
+        If cells contain formulae you can translate them. Reference to the
+        cells from other cells or defined names will not be updated.
+        -> ws.move_range('G4:H10', rows=1, cols=1, translate=True)
+
+Charts:
+    Area Charts:
+        Area charts are similar to the line charts with the addition
+        that the area underneath the plotted line is filled.
+        2D:
+            -> from openpyxl.chart import ( AreaChart, Reference, Series)
+            -> wb = Workbook()
+            -> ws = wb.active
+            -> rows = [
+                        ['Number', 'Batch 1', 'Batch 2'],
+                        [2, 40, 30],
+                        [3, 40, 25],
+                        [4, 50, 30],
+                        [5, 30, 10],
+                        [6, 25, 5],
+                        [7, 50, 10]]
+            -> for  row in rows:
+                    ws.append(rows)
+            -> chart = AreaChart()
+            -> chart.title = 'Area Chart'
+            -> chart.style = 13
+            -> chart.x_axis.title = 'Test'
+            -> chart.y_axis.title = 'Percentage'
+
+            -> cats = Reference(ws, min_col=1, min_row=1, max_row=7)
+            -> data = Reference(ws, min_col=2, min_row=1, max_col=3, max_row=7)
+            -> chart.add_data(data, titles_from_data=True)
+            -> chart.set_categories(cats)
+
+            -> ws.add_chart(chart, 'A10')
+            -> wb.save('area.xlsx')
+
+        3D:
+            Change these line from above code:
+                -> from openpyxl.chart import( AreaChart3D, Reference, Series)
+                -> chart = AreaChart3D()
+
+    Bar and Column Charts:
+        values are plotted as either horizontal bars or vertical columns.
+
+        2D:
+            -> from openpyxl.chart import BarChart, Series, Reference
+            -> wb = Workbook(write_only=True)
+            -> ws = wb.create_sheet()
+            -> rows = [
+                    ('Number', 'Batch 1', 'Batch 2'),
+                    (2, 10, 30),
+                    (3, 40, 60),
+                    (4, 50, 70),
+                    (5, 20, 10),
+                    (6, 10, 40),
+                    (7, 50, 30)]
+            -> for row in rows:
+                    ws.append(row)
+
+            # Vertical Bar Chart
+            -> chart1 = BarChart()
+            -> chart1.type = 'col'
+            -> chart1.style = 10
+            -> chart1.title = 'Bar Chart'
+            -> chart1.y_axis.title = 'Test number'
+            -> chart1.x_axis.title = 'Sample length(mm)'
+
+            -> data = Reference(ws, min_col=2, min_row=1, max_row=7, max_col=3)
+            -> cats = Reference(ws, min_col=1, min_row=2, max_row=7)
+            -> chart1.add_data(data, titles_frm_data=True)
+            -> chart1.set_categories(cats)
+            -> chart1.shape = 4
+            -> ws.add_chart(chart1, 'A10')
+
+            # Horizontal Stacked Chart
+
+            -> from copy import deepcopy
+            -> chart2 = deepcopy(chart1)
+            -> chart2.style = 11
+            -> chart2.type = 'bar'
+            -> chart2.title = 'Horizontal Bar Chart'
+
+            -> ws.add_chart(chart2, 'G10')
+
+            # Vertical Stacked Chart
+            -> chart3 = deepcopy(chart1)
+            -> chart3.type = 'col'
+            -> chart3.style = 12
+            -> chart3.grouping = 'stacked'
+            -> chart3.overlap = 100
+            -> chart3.title = 'Stacked Chart'
+
+            -> ws.add_chart(chart3, 'A27')
+
+            # Percent Stacked Chart
+            -> chart4.deepcopy(chart1)
+            -> chart4.type = 'bar'
+            -> chart4.style = 13
+            -> chart4.grouping = 'percentStacked'
+            -> chart4.overlap = 100
+            -> chart4.title = 'Percent Stacked Chart'
+
+            -> ws.add_chart(chart4, 'G27')
+            -> wb.save('bar.xlsx')
+
+        3D:
+            Just change or add these line from above code
+            -> chart = BarCHart3D()
+
+    Bubble Chart:
+        They use a third dimension to determine the size of the bubbles.
+
+        -> rows = [
+                ('Number of Products', 'Sales in USD', 'Market share'),
+                (14, 12200, 15),
+                (20, 60000, 33),
+                (18, 24400, 10),
+                (22, 32000, 42),
+                (),
+                (12, 8200, 18),
+                (15, 50000, 30),
+                (19, 22400, 15),
+                (25, 25000, 50)]
+
+        -> for row in rows:
+                ws.append(row)
+
+        -> chart = BubbleChart()
+        -> chart.style = 18
+
+        -> # add the first series of data
+        -> xvalues = Reference(ws, min_col=1, min_row=2, max_row=5)
+        -> yvalues = Reference(ws, min_col=2, min_row=2, max_row=5)
+        -> size = Reference(ws, min_col=3, min_row=2, max_row=5)
+        -> series = Series(values=yvalues, xvalues=xvalues, zvalues=size, title='2013')
+        -> chart.series.append(series)
+
+        -> add the second
+        -> xvalues = Reference(ws, min_col=1, min_row=7, max_row=10)
+        -> yvalues = Reference(ws, min_col=2, min_row=7, max_row=10)
+        -> size = Reference(ws, min_col=3, min_row=7, max_row=10)
+        -> series = Series(values=yvalues, xvalues=xvalues, zvalues=size, title=''2014')
+        -> chart.series.append(series)
+
+        -> # place the chart starting in cell E1
+        -> ws.add_chart(chart, 'E1')
+        -> wb.save('bubble.xlsx')
+
+    Line Chart:
+        It allows data to be plotted against a fixed axis.
+
+        2D:
+            -> from datetime import date
+            -> from openpyxl import Workbook
+            -> from openpyxl.chart import(
+                    LineChart,
+                    Reference)
+            -> from openpyxl.chart.axis import DateAxis
+
+            -> wb = Workbook()
+            -> ws = wb.active
+
+            -> rows = [
+                    ['Date', 'Batch 1', 'Batch 2', 'Batch 3'],
+                    [date(2015, 9, 1), 40, 30, 25],
+                    [date(2015, 9, 2), 40, 25, 30],
+                    [date(2015, 9, 3), 50, 30, 45],
+                    [date(2015, 9, 4), 30, 25, 40],
+                    [date(2015, 9, 5), 25, 35, 30],
+                    [date(2015, 9, 6), 20, 40, 35]]
+
+            -> for row in rows:
+                    ws.append(row)
+
+            # Standard Line Chart
+            -> c1 = LineChart()
+            -> c1.title = 'Line Chart'
+            -> c1.style = 13
+            -> c1.y_axis.title = 'Size'
+            -> c1.x_axis.title = 'Test Number'
+
+            -> data = Reference(ws, min_col=2, min_row=1, max_col=4, max_row=7)
+            -> c1.add_data(data, titles_from_data=True)
+
+            -> # Style the line
+            -> s1 = c1.series[0]
+            -> s1.marker.symbol = 'triangle'
+            -> s1.marker.graphicalProperties.solidfill = 'FF000'
+            -> s1.marker.graphicalProperties.line.solidFill = 'FF000'
+
+            -> s1.graphicalProperties.line.noFill = True
+
+            -> s2 = c1.series[1]
+            -> s2.graphicalProperties.line.solidFill = '00AAAA'
+            -> s2.graphicalProperties.line.dashStyle = 'sysDot'
+            -> s2.graphicalProperties.line.width = 100050  # width in EMUs
+
+            -> s2 = c1.series[2]
+            -> s2.smooth = True    # Make the Line smooth
+
+            -> ws.add_chart(c1, 'A10')
+
+            # Stacked Line Chart
+            -> from copy import deepcopy
+            -> stacked = deepcopy(c1)
+            -> stacked.grouping = 'stacked'
+            -> stacked.title = "Stacked Line Chart"
+            -> ws.add_chart(stacked, 'A27')
+
+            # Percent Stacked Line Chart
+            -> percent_stacked = deepcopy(c1)
+            -> percent_stacked.grouping = 'percentStacked'
+            -> percent_stacked.title = 'Percent Stacked Line Chart'
+            -> ws.add_chart(percent_stacked, 'A44')
+
+            # Chart with date axis
+            -> c2 = LineChart()
+            -> c2.title = 'Date Axis'
+            -> c2.style = 12
+            -> c2.y_axis.title = 'Size'
+            -> c2.y_axis.crossAx = 500
+
+            -> c2.x_axis = DateAxis(crossAx=100)
+            -> c2.x_axis.number_format = 'd-mmm'
+            -> c2.x_axis.majorTimeUnit = 'days'
+            -> c2.x_axis.title = 'Date'
+            -> c2.add_data(data, titles_from_data=True)
+            -> dates = Reference(ws, min_col=1 min_row=2, max_row=7)
+            -> c2.set_categories(dates)
+
+            -> ws.add_chart(c2, 'A61')
+            -> wb.save('line.xlsx')
+
+        3D:
+            In 3D line charts the third axis is the same as the legend for the series.
+
+            -> from datetime import date
+            -> from openpyxl import Workbook
+            -> from openpyxl.chart import( LineChart3D, Reference)
+            -> from openpyxl.chart.axis import DateAxis
+
+            -> wb = Workbook()
+            -> ws = wb.active
+
+            -> rows = [
+                    ['Date', 'Batch1', 'Batch2', 'Batch3'],
+                    [date(2015, 9, 1), 40, 30, 25],
+                    [date(2015, 9, 2), 40, 25, 30],
+                    [date(2015, 9, 3), 50, 30, 45],
+                    [date(2015, 9, 4), 30, 25, 40],
+                    [date(2015, 9, 5), 25, 35, 30],
+                    [date(2015, 9, 6), 20, 40, 35]]
+
+            -> for row in rows:
+                    ws.append(row)
+
+            -> c1 = LineChart3D()
+            -> c1.title = '3D Line Chart'
+            -> c1.legend = None
+            -> c1.style = 15
+            -> c1.y_axis.title = 'Size'
+            -> c1.x_axis.title = 'Test Number'
+
+            -> data = Reference(ws, min_col=2, min_row=1, max_col=4, max_row=7)
+            -> c1.add_date(data, titles_from_data=True)
+
+            -> ws.add_chart(c1, 'A10')
+
+            -> wb.save('line3D.xlsx')
+
+    Scatter Charts:
+        In this one series of values is plotted against another.
+        This is useful where values are unordered.
+
+        -> from openpyxl import Workbook
+        -> from openpyxl import ( ScatterChart, Reference, Series)
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> rows = [
+                ['Size', 'Batch 1', 'Batch 2'],
+                [2, 40, 30],
+                [3, 40, 25],
+                [4, 50, 30],
+                [5, 30, 25],
+                [6, 25, 35],
+                [7, 20, 40]]
+
+        -> for row in rows:
+                ws.append(row)
+
+        -> chart = ScatterChart()
+        -> chart.title = 'Scatter Chart'
+        -> chart.style = 13
+        -> chart.x_axis.title = 'Size'
+        -> chart.y_axis.title = 'Percentage'
+
+        -> xvalues = Reference(ws, min_col=1, min_row=2, max_row=7)
+
+        -> for i in range(2, 4):
+                values = Reference(ws, min_col=i, min_row=1, max_row=7)
+                series = Series(values, xvalues, title_from_data=True)
+                chart.series.append(series)
+
+        -> ws.add_chart(chart, 'A10')
+        -> wb.save('scatter.xlsx')
+
+    Pie Chart:
+        It plots data as slice of a circle with each slice representing the percentage of the whole.
+        Slices are plotted in a clockwise direction with 0 being at the top of the circle.
+        Pie charts can only take a single series of data.
+
+        Projected pie chart extract some slices from a pie chart and project them into a second pie or bar chart.
+        This is useful when there are several smaller items in the data series.
+        The chart can be split according to percent, value, position.
+
+        2D:
+            # Standard Pie Chart
+            -> from openpyxl import Workbook
+            -> from openpyxl.chart import ( PieChart, ProjectedPieChart, Reference)
+            -> from openpyxl.chart.series import DataPoint
+
+            -> data = [
+                    ['Pie', 'Sold'],
+                    ['Apple', 50],
+                    ['Cherry', 30],
+                    ['Pumpkin', 10],
+                    ['Chocolate', 40]]
+
+            -> wb = Workbook()
+            -> ws = wb.active
+
+            -> for row in data:
+                    ws.append(row)
+
+            -> pie = PieChart()
+            -> labels = Reference(ws, min_col=1, min_row=2, max_row=5)
+            -> data = Reference(ws, min_col=2, min_row=1, max_row=5)
+            -> pie.add_data(data, titles_from_data=True)
+            -> pie.set_categories(labels)
+            -> pie.title = 'Pies sold by category'
+
+            -> # Cut the first slice out of the pie
+            -> slice = DataPoint(idx=0, explosion=20)
+            -> pie.series[0].data_points = [slice]
+
+            -> ws.add_chart(pie, 'D1')
+
+            # Projected Pie chart
+            -> ws = wb.create_sheet(title='Projection')
+            -> data = [
+                    ['Page', 'Views'],
+                    ['Search', 95],
+                    ['Product', 4],
+                    ['Offers', 0.5],
+                    ['Sales', 0.5]]
+
+            -> for row in data:
+                    ws.append(row)
+
+            -> projected_pie = ProjectedPieChart()
+            -> projected_pie.type = 'pie'
+            -> projected_pie.splitType = 'val'
+            -> labels = Reference(ws, min_col=1, min_row=2, max_row=5)
+            -> data = Reference(ws, min_col=2, min_row=1, max_row=5)
+            -> projected_pie.add_data(data, titles_from_data=True)
+            -> projected_pie.set_categories(labels)
+
+            -> ws.add_chart(projected_pie, 'A10')
+
+            -> from copy import deepcopy
+            -> projected_bar = deepcopy(projected_pie)
+            -> projected_bar.type = 'bar'
+            -> projected_bar.splitType = 'pos'
+
+            -> ws.add_chart(projected_bar, 'A27')
+
+            -> wb.save('pie.xlsx')
+
+        3D:
+            -> from openpyxl import Workbook
+            -> from openpyxl.chart import ( PieChart3D, Reference)
+
+            -> data = [
+                    ['Pie', 'Sold]
+                    ['Apple', 50],
+                    ['Cherry', 30],
+                    ['Pumpkin', 10],
+                    ['Chocolate', 40]]
+
+            -> wb = Workbook()
+            -> ws = wb.active
+
+            -> for row in data:
+                    wss.append(row)
+
+            -> pie = PieChart3D()
+            -> labels = Reference(ws, min_col=1, min_row=2, max_row=5)
+            -> data = Reference(ws, min_col=2, min_row=1, max_row=5)
+            -> pie.add_data(data, titles_from_data=True)
+            -> pie.set_categories(labels)
+            -> pie.title = 'Pies sold by category'
+
+            -> ws.add_chart(pie, 'D1')
+            -> wb.save('pie3D.xlsx')
+
+    Doughnut Chart:
+
+        -> from openpyxl import Workbook
+        -> from openpyxl.chart import (DoughnutChart, Reference, Series)
+        -> from openpyxl.chart.series import DataPoint
+
+        -> data = [
+                ['Pie', 2014, 2015],
+                ['Plain', 40, 40],
+                ['Jam', 2, 10],
+                ['Lime', 20, 30],
+                ['Chocolate', 30, 40]]
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> for row in data:
+                ws.append(row)
+
+        -> chart = DoughnutChart()
+        -> labels = Reference(ws, min_col=1, min_row=2, max_row=5)
+        -> data = Reference(ws, min_col=2, mic_row=1, max_row=5)
+        -> chart.add_data(data, titles_from_data=True)
+        -> chart.set_categories(labels)
+        -> chart.title = 'Doughnuts sold by category'
+        -> chart.style = 26
+
+        -> # cut the first slice out of the doughnut
+        -> slices = [DataPoint(idx=i) for i in range(4)]
+        -> plain, jam, line, chocolate = slices
+        -> chart.series[0].data_points = slices
+        -> plain.graphicalProperties.solidFill = 'FAE1D0'
+        -> jam.graphicalProperties.solidFill = 'BB2244'
+        -> lime.graphicalProperties.solidFill = '22DD22'
+        -> chocolate.graphicalProperties.solidFill = '61210B'
+        -> chocolate.explosion = 10
+
+        -> ws.add_chart(chart, 'E1')
+
+        # Doughnut Chart inside a Doughnut chart
+        -> from copy import deepcopy
+
+        -> chart2 = deepcopy(chart)
+        -> chart2.title = None
+        -> data = Reference(ws, min_col=3, min_row=1, max_row=5)
+        -> series2 = Series(data, title_from_data=True)
+        -> series2.data_points = slices
+        -> chart2.series.append(series2)
+
+        -> ws.add_chart(chart2, 'E17')
+        -> wb.save('doughnut.xlsx')
+
+Comments:
+    Adding a comment to a cell:
+       -> from openpyxl import Workbook
+       -> from openpyxl.comments import Comment
+
+       -> wb = Workbook()
+       -> ws = wb.active
+
+       -> comment = ws['A1'].comment
+       -> comment = Comment('This is the comment text', 'Comment Author')
+       -> comment.text    # This is the comment text
+       -> comment.author  # Comment Author
+
+    Same comment to multiple cells:
+        -> ws['A1'].comment = comment
+        -> ws['B2'].comment = comment
+
+    Loading and saving comments:
+        Comments present in a workbook when loaded are stored in the comment
+        attribute of their respective cells automatically.
+        Formatting information such as font size, bold, italics are lost.
+
+        -> from openpyxl import Workbook
+        -> from openpyxl.comments import Comment
+        -> from openpyxl.utils import units
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> comment = Comment('Text', 'Author')
+        -> comment.width = 300
+        -> comment.height = 50
+
+        -> ws['A1'].comment = comment
+        -> wb.save('commented_book.xlsx')
+
+Print Settings:
+    Edit Print options:
+        -> from openpyxl.workbook import Workbook
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> ws.print_options.horizontalCentered = True
+        -> ws.print_options.verticalCentered = True
+
+    Header and Footer:
+        -> from openpyxl.workbook import Workbook
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> ws.oddHeader.left.text = 'Page &[page] of &N'
+        -> ws.oddHeader.left.size = 14
+        -> ws.oddHeader.left.font = 'Tahoma, Bold'
+        -> ws.oddHeader.left.color = 'CC3366'
+
+    Add Print Titles:
+        You can print titles on every page to ensure that the data is properly labelled.
+        -> from openpyxl.workbook import Workbook
+
+        -> wb = Workbook()
+        -> ws = wb.active
+
+        -> ws.print_title_cols = 'A:B' # first two cols
+        -> ws.print_title_rows = '1:1' # first row
+
+    Add a Print Area:
+        You can select a part of a worksheet as the only part that you want to print
+
+        -> from openpyxl.workbook import Workbook
+        -> wb = Workbook()
+        -> ws = wb.active
+        -> ws.print_area = 'A1:F10'
